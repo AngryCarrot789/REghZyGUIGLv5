@@ -14,6 +14,7 @@ import java.util.LinkedList;
 
 public class RenderManager {
     private static final HashMap<Class<? extends ControlRenderer<? extends Control>>, ControlRenderer<? extends Control>> RENDER_INSTANCES = new HashMap<>();
+    private static final HashMap<Class<? extends Control>, ControlRenderer<? extends Control>> RENDERER_CACHE = new HashMap<>();
 
     public static boolean FORCE_RENDER_ALWAYS = true;
 
@@ -28,6 +29,14 @@ public class RenderManager {
     private static ControlRenderer getRenderer(Control control) {
         ControlRenderer renderer = RENDER_INSTANCES.get(control.getRenderClass());
         if (renderer == null) {
+            // for(Class<?> clazz = control.getClass().getSuperclass(); clazz != null; clazz = clazz.getSuperclass()) {
+            //     if (Control.class.isAssignableFrom(clazz)) {
+            //         if (RENDER_INSTANCES.get(clazz) != null) {
+            //             return
+            //         }
+            //     }
+            // }
+
             throw new RuntimeException("Missing model for control class: " + control.getClass().getName());
         }
 
@@ -44,7 +53,7 @@ public class RenderManager {
             }
         }
 
-        getRenderer(control).render(control, occlusions, engine, render, window, pos, z, rotation);
+        getRenderer(control).render(control, occlusions, engine, render, window, pos, z + control.render.renderDepth, rotation);
     }
 
     public static void renderControl(Control control, LinkedList<Region2d> occlusions, GuiGLEngine engine, RenderEngine render, Window window, Vector2d pos, double z, boolean force) {
@@ -81,13 +90,5 @@ public class RenderManager {
 
     public static void renderControl(Control control, GuiGLEngine engine, Vector2d pos, double z, boolean force) {
         renderControl(control, null, engine, engine.getRenderEngine(), engine.getMainWindow(), pos, z, Vector3f.get(0.0d), force);
-    }
-
-    public static void renderControl(Control control, GuiGLEngine engine, Vector2d pos, boolean force) {
-        renderControl(control, null, engine, engine.getRenderEngine(), engine.getMainWindow(), pos, 0.0d, Vector3f.get(0.0d), force);
-    }
-
-    public static void renderControl(Control control, GuiGLEngine engine, boolean force) {
-        renderControl(control, null, engine, engine.getRenderEngine(), engine.getMainWindow(), control.getAbsolutePos(), 0.0d, Vector3f.get(0.0d), force);
     }
 }

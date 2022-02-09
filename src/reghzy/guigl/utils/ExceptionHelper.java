@@ -23,7 +23,7 @@ public class ExceptionHelper {
             int loop = 0;
             while (cause != null) {
                 if (++loop > 50) {
-                    logger.info("50+ exception loop!");
+                    logger.infoFormat("50+ exception loop!");
                     return;
                 }
 

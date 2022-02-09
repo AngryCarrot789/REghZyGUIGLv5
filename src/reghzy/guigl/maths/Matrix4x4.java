@@ -396,7 +396,6 @@ public class Matrix4x4 {
         return projection;
     }
 
-    // doesn't work :(
     public static Matrix4x4 orthographic(float left, float top, float right, float bottom, float near, float far) {
         Matrix4x4 orthographic = POOL.get();
         float[] m = orthographic.m;

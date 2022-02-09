@@ -3,6 +3,7 @@ package reghzy.guigl.maths;
 import com.sun.javafx.geom.Vec3d;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
+import sun.reflect.generics.tree.ReturnType;
 
 /**
  * Vector2d is used for accurate 2D graphics, used for mainly positioning
@@ -265,6 +266,12 @@ public class Vector2d {
     public Vector2d set(Vector2d v) {
         this.x = v.x;
         this.y = v.y;
+        return this;
+    }
+
+    public Vector2d absolute() {
+        this.x = Math.abs(this.x);
+        this.y = Math.abs(this.y);
         return this;
     }
 

@@ -17,7 +17,7 @@ public class RenderCollectiveContentControl extends ControlRenderer<CollectiveCo
     @Override
     public void render(CollectiveContentControl control, LinkedList<Region2d> occlusions, GuiGLEngine engine, RenderEngine render, Window window, Vector2d pos, double z, Vector3f rotation) {
         for (Control child : control.getChildren()) {
-            RenderManager.renderControl(child, engine, render, window, z + child.render.renderDepth, rotation, true);
+            RenderManager.renderControl(child, engine, render, window, z, rotation, true);
         }
     }
 }

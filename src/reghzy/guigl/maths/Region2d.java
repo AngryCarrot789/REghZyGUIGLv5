@@ -269,6 +269,14 @@ public class Region2d {
         return this;
     }
 
+    public Vector2d getMin() {
+        return Vector2d.get(this.minX, this.minY);
+    }
+
+    public Vector2d getMax() {
+        return Vector2d.get(this.maxX, this.maxY);
+    }
+
     public Region2d copy() {
         return new Region2d(this.minX, this.minY, this.maxX, this.maxY);
     }

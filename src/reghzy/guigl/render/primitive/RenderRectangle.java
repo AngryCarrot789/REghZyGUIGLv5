@@ -14,8 +14,8 @@ import java.util.LinkedList;
 public class RenderRectangle extends ControlRenderer<Rectangle> {
     @Override
     public void render(Rectangle control, LinkedList<Region2d> occlusions, GuiGLEngine engine, RenderEngine render, Window window, Vector2d pos, double z, Vector3f rotation) {
-        if (control.background != null) {
-            render.drawRect2d(pos.x, pos.y, pos.x + control.getActualWidth(), pos.y + control.getActualHeight(), z, control.background);
+        if (control.getActiveBackground() != null) {
+            render.drawRect2d(pos.x, pos.y, pos.x + control.getActualWidth(), pos.y + control.getActualHeight(), z, control.getActiveBackground());
         }
     }
 }

@@ -38,12 +38,13 @@ public class Mouse {
             @Override
             public void invoke(long window, int button, int action, int mods) {
                 boolean isDown = (action != GLFW.GLFW_RELEASE);
-                buttonsDown[button] = isDown;
+                Mouse.this.buttonsDown[button] = isDown;
+                Mouse.this.buttonsDownFrame[button] = isDown;
                 if (action == GLFW.GLFW_RELEASE) {
-                    eventRawOnButtonUp.raise(new MouseButtonEvent(MouseButton.fromCode(button), ButtonState.released, mods));
+                    eventRawOnButtonUp.raise(new MouseButtonEvent(Mouse.this, MouseButton.fromCode(button), ButtonState.released, mods));
                 }
                 else {
-                    eventRawOnButtonDown.raise(new MouseButtonEvent(MouseButton.fromCode(button), ButtonState.released, mods));
+                    eventRawOnButtonDown.raise(new MouseButtonEvent(Mouse.this, MouseButton.fromCode(button), ButtonState.released, mods));
                 }
             }
         };
@@ -76,7 +77,7 @@ public class Mouse {
             return;
         }
 
-        this.eventRawOnMouseMove.raise(new MouseMoveEvent(this.oldX, this.oldY, this.newX, this.newY));
+        this.eventRawOnMouseMove.raise(new MouseMoveEvent(new Vector2d(this.oldX, this.oldY), new Vector2d(this.newX, this.newY)));
     }
 
     public void registerCallback() {
@@ -96,19 +97,19 @@ public class Mouse {
     }
 
     public Vector2d getMousePosI() {
-        return new Vector2d((int) this.newX, (int) this.newY);
+        return Vector2d.get((int) this.newX, (int) this.newY);
     }
 
     public Vector2d getMousePos() {
-        return new Vector2d(this.newX, this.newY);
+        return Vector2d.get(this.newX, this.newY);
     }
 
     public Vector2d getOldMousePosI() {
-        return new Vector2d((int) this.oldX, (int) this.oldY);
+        return Vector2d.get((int) this.oldX, (int) this.oldY);
     }
 
     public Vector2d getOldMousePos() {
-        return new Vector2d(this.oldX, this.oldY);
+        return Vector2d.get(this.oldX, this.oldY);
     }
 
     public double getNewX() {

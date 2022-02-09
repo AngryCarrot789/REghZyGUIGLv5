@@ -1,6 +1,7 @@
 package reghzy.guigl;
 
 import org.lwjgl.glfw.GLFW;
+import reghzy.guigl.core.event.EventTracer;
 import reghzy.guigl.core.input.Keyboard;
 import reghzy.guigl.core.input.KeyboardKey;
 import reghzy.guigl.core.input.Mouse;
@@ -8,14 +9,17 @@ import reghzy.guigl.core.log.GuiGLLogger;
 import reghzy.guigl.core.primitive.Panel;
 import reghzy.guigl.core.primitive.Rectangle;
 import reghzy.guigl.core.utils.ColourARGB;
+import reghzy.guigl.core.utils.Thickness;
 import reghzy.guigl.maths.Vector2d;
 import reghzy.guigl.render.RenderEngine;
 import reghzy.guigl.render.RenderManager;
 import reghzy.guigl.resource.ResourceManager;
+import reghzy.guigl.utils.ExceptionHelper;
 import reghzy.guigl.utils.RZFormats;
 import reghzy.guigl.window.Window;
 
 import java.io.File;
+import java.lang.ref.WeakReference;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -98,6 +102,18 @@ public class GuiGLEngine implements Runnable {
     }
 
     private void doShutdown() {
+        for(WeakReference<EventTracer> tracker : EventTracer.APP_TRACERS) {
+            EventTracer tracer = tracker.get();
+            if (tracer != null && tracer.getStackFrames().size() > 0) {
+                getLogger().infoFormat("{0} -> {1}", tracer.event.getClass().getSimpleName(), tracer.getStackFrames().size());
+                for(StackTraceElement[] elements : tracer.getStackFrames()) {
+                    ExceptionHelper.printStackTraceColour(elements, getLogger());
+                }
+
+                getLogger().infoFormat("------------------------------------------------");
+            }
+        }
+
         GLFW.glfwTerminate();
     }
 
@@ -138,34 +154,37 @@ public class GuiGLEngine implements Runnable {
 
         this.mainWindow = new Window(this, "Main Window - GuiGL v0.0.2");
         this.mainWindow.makeCurrent();
-        this.mainWindow.setCursorCaptured();
+        // this.mainWindow.setCursorCaptured();
         setMainWindow(this.mainWindow);
 
         Rectangle rect = new Rectangle();
-        rect.setSize(Vector2d.get(this.mainWindow.getWidth(), this.mainWindow.getHeight()));
-        rect.background = ColourARGB.CYAN;
+        rect.setMargin(new Thickness(100, 500, 0, 0));
+        rect.setSize(Vector2d.get(this.mainWindow.getWidth() / 4, this.mainWindow.getHeight() / 4));
+        rect.defaultBackground = ColourARGB.BLACK;
+        rect.mouseOverBackground = ColourARGB.RED;
 
-        Rectangle rect1 = Rectangle.newRect(Vector2d.get(0.0d), Vector2d.get(20.0d, 20.0d));
-        Rectangle rect2 = Rectangle.newRect(Vector2d.get(this.mainWindow.getWidth() - 20, 0.0d), Vector2d.get(20.0d, 20.0d));
-        Rectangle rect3 = Rectangle.newRect(Vector2d.get(this.mainWindow.getWidth() - 20.0d, this.mainWindow.getHeight() - 20.0d), Vector2d.get(20.0d, 20.0d));
-        Rectangle rect4 = Rectangle.newRect(Vector2d.get(0.0d, this.mainWindow.getHeight() - 20.0d), Vector2d.get(20.0d, 20.0d));
+        double sz = 50.0d;
+        Rectangle rect1 = Rectangle.newRect(Vector2d.get(0.0d), Vector2d.get(sz, sz));
+        Rectangle rect2 = Rectangle.newRect(Vector2d.get(this.mainWindow.getWidth() - sz, 0.0d), Vector2d.get(sz, sz));
+        Rectangle rect3 = Rectangle.newRect(Vector2d.get(this.mainWindow.getWidth() - sz, this.mainWindow.getHeight() - sz), Vector2d.get(sz, sz));
+        Rectangle rect4 = Rectangle.newRect(Vector2d.get(0.0d, this.mainWindow.getHeight() - sz), Vector2d.get(sz, sz));
 
-        rect1.background = ColourARGB.RED;
-        rect2.background = ColourARGB.RED;
-        rect3.background = ColourARGB.RED;
-        rect4.background = ColourARGB.RED;
-
-        rect1.render.renderDepth += 0.01f;
-        rect2.render.renderDepth += 0.01f;
-        rect3.render.renderDepth += 0.01f;
-        rect4.render.renderDepth += 0.01f;
+        rect1.defaultBackground = ColourARGB.BLUE;
+        rect2.defaultBackground = ColourARGB.BLUE;
+        rect3.defaultBackground = ColourARGB.BLUE;
+        rect4.defaultBackground = ColourARGB.BLUE;
+        rect1.mouseOverBackground = ColourARGB.GREEN;
+        rect2.mouseOverBackground = ColourARGB.GREEN;
+        rect3.mouseOverBackground = ColourARGB.GREEN;
+        rect4.mouseOverBackground = ColourARGB.GREEN;
 
         Panel panel = new Panel();
+        panel.setSize(this.mainWindow.getSize());
         panel.addChild(rect);
-        panel.addChild(rect1);
-        panel.addChild(rect2);
-        panel.addChild(rect3);
-        panel.addChild(rect4);
+        panel.addChild(rect1.setDepth(0.1f));
+        panel.addChild(rect2.setDepth(0.1f));
+        panel.addChild(rect3.setDepth(0.1f));
+        panel.addChild(rect4.setDepth(0.1f));
 
         this.mainWindow.setContent(panel);
 

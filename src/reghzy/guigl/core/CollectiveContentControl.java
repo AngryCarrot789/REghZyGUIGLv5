@@ -1,5 +1,7 @@
 package reghzy.guigl.core;
 
+import reghzy.guigl.maths.Region2d;
+import reghzy.guigl.maths.Vector2d;
 import reghzy.guigl.render.ControlRenderer;
 import reghzy.guigl.render.primitive.RenderCollectiveContentControl;
 
@@ -22,6 +24,7 @@ public abstract class CollectiveContentControl extends Control {
     }
 
     public void addChild(Control control) {
+        control.parent = this;
         this.children.add(control);
         for(Control ctrl : this.children) {
             ctrl.markForGlobalUpdate();
@@ -32,6 +35,7 @@ public abstract class CollectiveContentControl extends Control {
     }
 
     public void removeChild(Control control) {
+        control.parent = null;
         this.children.remove(control);
         for (Control ctrl : this.children) {
             ctrl.markForGlobalUpdate();

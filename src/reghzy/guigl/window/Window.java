@@ -1,12 +1,15 @@
 package reghzy.guigl.window;
 
 import org.lwjgl.glfw.GLFW;
+import org.lwjgl.glfw.GLFWWindowFocusCallback;
+import org.lwjgl.glfw.GLFWWindowFocusCallbackI;
 import org.lwjgl.glfw.GLFWWindowPosCallback;
 import org.lwjgl.glfw.GLFWWindowSizeCallback;
 import org.lwjgl.opengl.GL11;
 import reghzy.guigl.GuiGLEngine;
 import reghzy.guigl.Time;
 import reghzy.guigl.core.Control;
+import reghzy.guigl.core.MouseHandler;
 import reghzy.guigl.core.event.events.KeyEvent;
 import reghzy.guigl.core.event.events.MouseButtonEvent;
 import reghzy.guigl.core.event.events.MouseMoveEvent;
@@ -50,11 +53,14 @@ public class Window {
     private boolean isDisposed;
     private final GLFWWindowSizeCallback resizeCallback;
     private final GLFWWindowPosCallback posCallback;
+    private final GLFWWindowFocusCallback focusCallback;
     public final RoutedEventStore<WindowMoveEvent> onWindowMove = new RoutedEventStore<WindowMoveEvent>(null);
     public final RoutedEventStore<WindowResizeEvent> onWindowResized = new RoutedEventStore<WindowResizeEvent>(null);
 
     private boolean isMovingInEvent;
     private boolean isResizingInEvent;
+
+    private boolean isFocusedFromCallback;
 
     public boolean clearScreenNextTick = true;
 
@@ -153,13 +159,37 @@ public class Window {
             }
         };
 
+        this.focusCallback = new GLFWWindowFocusCallback() {
+            @Override
+            public void invoke(long window, boolean focused) {
+                if (window == Window.this.id) {
+                    Window.this.isFocusedFromCallback = focused;
+                }
+            }
+        };
+
         GLFW.glfwSetWindowSizeCallback(this.id, this.resizeCallback);
         GLFW.glfwSetWindowPosCallback(this.id, this.posCallback);
+        GLFW.glfwSetWindowFocusCallback(this.id, this.focusCallback);
         this.mouse.eventRawOnButtonUp.addHandler((sender, event) -> this.onMouseUp(event));
         this.mouse.eventRawOnButtonDown.addHandler((sender, event) -> this.onMouseDown(event));
         this.mouse.eventRawOnMouseMove.addHandler((sender, event) -> this.onMouseMove(event));
         this.keyboard.eventRawOnKeyDown.addHandler(((sender, event) -> this.onKeyDown(event)));
         this.keyboard.eventRawOnKeyUp.addHandler(((sender, event) -> this.onKeyUp(event)));
+    }
+
+    public boolean isFocused() {
+        return isFocusedFromCallback;
+    }
+
+    public boolean isMouseOverWindow() {
+        Vector2d pos = this.mouse.getMousePos();
+        if (pos.x >= 0 && pos.y >= 0) {
+            return true;
+            // return this.isFocusedFromCallback;
+        }
+
+        return false;
     }
 
     /**
@@ -222,11 +252,12 @@ public class Window {
     }
 
     public void onMouseMove(MouseMoveEvent event) {
-        final float sensitivity = 0.05f;
-        RenderEngine.CAMERA_ROT.add(
-                -(event.getChangeY() * Time.delta * sensitivity),
-                -(event.getChangeX() * Time.delta * sensitivity),
-                0.0f);
+        // final float sensitivity = 0.05f;
+        // RenderEngine.CAMERA_ROT.add(
+        //         -(event.getChangeY() * Time.delta * sensitivity),
+        //         -(event.getChangeX() * Time.delta * sensitivity),
+        //         0.0f);
+        MouseHandler.calculateMouseMovement(this, event.getOld(), event.getNew());
     }
 
     public void onKeyDown(KeyEvent event) {
@@ -428,6 +459,7 @@ public class Window {
         this.keyboard.destroyCallback();
         this.resizeCallback.free();
         this.posCallback.free();
+        this.focusCallback.free();
         GLFW.glfwDestroyWindow(this.id);
         if (ID_TO_WINDOW.remove(this.id) == null) {
             throw new RuntimeException("Window id " + this.id + " was not cached");
@@ -482,5 +514,9 @@ public class Window {
 
     public void markViewPortModified() {
         this.clearScreenNextTick = true;
+    }
+
+    public Vector2d getSize() {
+        return Vector2d.get(this.width, this.height);
     }
 }
