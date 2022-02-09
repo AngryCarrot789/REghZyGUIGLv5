@@ -22,14 +22,14 @@ public class RoutedEventHandlerInfo<T extends RoutedEvent, J extends RoutedEvent
      * The handler to the event
      */
     public RoutedEventHandler<T> getHandler() {
-        return handler;
+        return this.handler;
     }
 
     /**
      * If true, then if the previous event handler sets the event args to cancelled, it will be ignored and this handler will be called anyway
      */
     public boolean isIgnoreCancelled() {
-        return ignoreCancelled;
+        return this.ignoreCancelled;
     }
 
     /**
@@ -42,6 +42,6 @@ public class RoutedEventHandlerInfo<T extends RoutedEvent, J extends RoutedEvent
      * </p>
      */
     public boolean shouldHandleOtherEventsIfCancelled() {
-        return handleOtherEventsIfCancelled;
+        return this.handleOtherEventsIfCancelled;
     }
 }

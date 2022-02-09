@@ -1,9 +1,11 @@
 package reghzy.guigl.core.event.events;
 
+import reghzy.guigl.core.event.Cancellable;
 import reghzy.guigl.core.event.RoutedEvent;
 import reghzy.guigl.core.input.KeyState;
 import reghzy.guigl.core.input.KeyboardKey;
 
+@Cancellable
 public class KeyEvent extends RoutedEvent {
     private final KeyboardKey key;
     private final KeyState state;

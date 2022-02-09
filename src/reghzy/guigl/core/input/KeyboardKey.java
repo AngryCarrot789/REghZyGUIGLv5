@@ -1,6 +1,10 @@
 package reghzy.guigl.core.input;
 
 import org.lwjgl.glfw.GLFW;
+import org.lwjgl.system.CallbackI;
+import org.lwjgl.system.NonnullDefault;
+
+import java.util.HashMap;
 
 public enum KeyboardKey {
     space(GLFW.GLFW_KEY_SPACE),
@@ -124,13 +128,19 @@ public enum KeyboardKey {
 
     last(GLFW.GLFW_KEY_LAST);
 
+    private static final HashMap<Integer, KeyboardKey> MAP = new HashMap<Integer, KeyboardKey>();
     public final int code;
     KeyboardKey(int code) {
         this.code = code;
     }
 
     public static KeyboardKey fromCode(int code) {
-        return values()[code];
+        KeyboardKey key = MAP.get(code);
+        if (key == null) {
+            throw new RuntimeException("Unknown key with code " + code);
+        }
+
+        return key;
     }
 
     public boolean equals(KeyboardKey key) {
@@ -139,6 +149,12 @@ public enum KeyboardKey {
 
     @Override
     public String toString() {
-        return "KeyboardKey{code:" + code + "}";
+        return "KeyboardKey{name=" + name() + ",code=" + code + "}";
+    }
+
+    static {
+        for(KeyboardKey key : values()) {
+            MAP.put(key.code, key);
+        }
     }
 }

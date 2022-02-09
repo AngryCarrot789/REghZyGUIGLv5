@@ -1,33 +1,51 @@
 package reghzy.guigl.core.event.events;
 
+import reghzy.guigl.core.event.Cancellable;
 import reghzy.guigl.core.event.RoutedEvent;
 
+@Cancellable
 public class WindowResizeEvent extends RoutedEvent {
-    private final double oldWidth;
-    private final double oldHeight;
-    private final double newWidth;
-    private final double newHeight;
+    private final int oldWidth;
+    private final int oldHeight;
+    private int newWidth;
+    private int newHeight;
 
-    public WindowResizeEvent(double oldWidth, double oldHeight, double newWidth, double newHeight) {
+    public WindowResizeEvent(int oldWidth, int oldHeight, int newWidth, int newHeight) {
         this.oldWidth = oldWidth;
         this.oldHeight = oldHeight;
         this.newWidth = newWidth;
         this.newHeight = newHeight;
     }
 
-    public double getOldWidth() {
+    public void setNewWidth(int newWidth) {
+        this.newWidth = newWidth;
+    }
+
+    public void setNewHeight(int newHeight) {
+        this.newHeight = newHeight;
+    }
+
+    public int getOldWidth() {
         return oldWidth;
     }
 
-    public double getOldHeight() {
+    public int getOldHeight() {
         return oldHeight;
     }
 
-    public double getNewWidth() {
+    public int getNewWidth() {
         return newWidth;
     }
 
-    public double getNewHeight() {
+    public int getNewHeight() {
         return newHeight;
+    }
+
+    public int getChangeX() {
+        return this.newWidth - this.oldWidth;
+    }
+
+    public int getChangeY() {
+        return this.newHeight - this.oldHeight;
     }
 }

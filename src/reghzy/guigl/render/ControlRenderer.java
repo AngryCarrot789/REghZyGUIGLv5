@@ -1,7 +1,11 @@
 package reghzy.guigl.render;
 
+import reghzy.guigl.GuiGLEngine;
 import reghzy.guigl.core.Control;
-import reghzy.guigl.math.Region2d;
+import reghzy.guigl.maths.Region2d;
+import reghzy.guigl.maths.Vector2d;
+import reghzy.guigl.maths.Vector3f;
+import reghzy.guigl.window.Window;
 
 import java.util.LinkedList;
 
@@ -29,5 +33,5 @@ public abstract class ControlRenderer<T extends Control> {
      * @param rotY The rotation of the control along the Y axis (usually 0.0f)
      * @param rotZ The rotation of the control along the Z axis (usually 0.0f)
      */
-    public abstract void render(T control, LinkedList<Region2d> occlusions, float x, float y, float z, float rotX, float rotY, float rotZ);
+    public abstract void render(T control, LinkedList<Region2d> occlusions, GuiGLEngine engine, RenderEngine render, Window window, Vector2d pos, double z, Vector3f rotation);
 }

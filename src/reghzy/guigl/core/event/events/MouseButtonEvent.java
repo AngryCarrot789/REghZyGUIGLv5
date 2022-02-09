@@ -1,9 +1,11 @@
 package reghzy.guigl.core.event.events;
 
+import reghzy.guigl.core.event.Cancellable;
 import reghzy.guigl.core.event.RoutedEvent;
 import reghzy.guigl.core.input.ButtonState;
 import reghzy.guigl.core.input.MouseButton;
 
+@Cancellable
 public class MouseButtonEvent extends RoutedEvent {
     private final MouseButton button;
     private final ButtonState state;

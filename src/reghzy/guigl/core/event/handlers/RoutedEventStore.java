@@ -22,47 +22,54 @@ public class RoutedEventStore<T extends RoutedEvent> {
 
     public RoutedEventStore(Control element) {
         this.element = element;
-        this.handlers = new ArrayList<>();
-        this.handlerToHandlerInfoMap = new HashMap<>();
+        this.handlers = new ArrayList<RoutedEventHandlerInfo<T, RoutedEventHandler<T>>>();
+        this.handlerToHandlerInfoMap = new HashMap<RoutedEventHandler<T>, RoutedEventHandlerInfo<T, RoutedEventHandler<T>>>();
         this.reverseHierarchy = false;
     }
 
     public RoutedEventStore(Control element, boolean reverseHierarchy) {
         this.element = element;
-        this.handlers = new ArrayList<>();
-        this.handlerToHandlerInfoMap = new HashMap<>();
+        this.handlers = new ArrayList<RoutedEventHandlerInfo<T, RoutedEventHandler<T>>>();
+        this.handlerToHandlerInfoMap = new HashMap<RoutedEventHandler<T>, RoutedEventHandlerInfo<T, RoutedEventHandler<T>>>();
         this.reverseHierarchy = reverseHierarchy;
     }
 
-    public void raise(T event) {
-        raise(event, this.reverseHierarchy);
+    /**
+     * Raises an event, possibly sending the event to all handlers
+     * @return True if the event is a cancellable type and was cancelled. False if it is not cancellable, or the event was not cancelled
+     */
+    public boolean raise(T event) {
+        return raise(event, this.reverseHierarchy);
     }
 
-    public void raise(T event, boolean reverseHierarchy) {
+    /**
+     * Raises an event, possibly sending the event to all handlers
+     * @return True if the event is a cancellable type and was cancelled. False if it is not cancellable, or the event was not cancelled
+     */
+    public boolean raise(T event, boolean reverseHierarchy) {
         Control element = this.element;
-        if (event.isCancelled()) {
-            return;
+        if (event.isFullyCancelled()) {
+            return true;
         }
 
         boolean wasCancelled = false;
         ArrayList<RoutedEventHandlerInfo<T, RoutedEventHandler<T>>> handlers = this.handlers;
-
         if (reverseHierarchy) {
             for (RoutedEventHandlerInfo<T, RoutedEventHandler<T>> handlerInfo : handlers) {
                 if (wasCancelled) {
                     if (handlerInfo.isIgnoreCancelled()) {
                         handlerInfo.getHandler().onHandle(element, event);
                         if (!handlerInfo.shouldHandleOtherEventsIfCancelled()) {
-                            return;
+                            return true;
                         }
 
-                        wasCancelled = event.isCancelled();
+                        wasCancelled = event.isFullyCancelled();
                         continue;
                     }
                 }
 
                 handlerInfo.getHandler().onHandle(element, event);
-                wasCancelled = event.isCancelled();
+                wasCancelled = event.isFullyCancelled();
             }
         }
         else {
@@ -72,36 +79,38 @@ public class RoutedEventStore<T extends RoutedEvent> {
                     if (handlerInfo.isIgnoreCancelled()) {
                         handlerInfo.getHandler().onHandle(element, event);
                         if (!handlerInfo.shouldHandleOtherEventsIfCancelled()) {
-                            return;
+                            return true;
                         }
 
-                        wasCancelled = event.isCancelled();
+                        wasCancelled = event.isFullyCancelled();
                         continue;
                     }
                 }
 
                 handlerInfo.getHandler().onHandle(element, event);
-                wasCancelled = event.isCancelled();
+                wasCancelled = event.isFullyCancelled();
             }
         }
+
+        return false;
     }
 
     public RoutedEventStore<T> addHandler(RoutedEventHandler<T> handler) {
-        RoutedEventHandlerInfo<T, RoutedEventHandler<T>> info = new RoutedEventHandlerInfo<>(handler, false, false);
+        RoutedEventHandlerInfo<T, RoutedEventHandler<T>> info = new RoutedEventHandlerInfo<T, RoutedEventHandler<T>>(handler, false, false);
         this.handlerToHandlerInfoMap.put(handler, info);
         this.handlers.add(info);
         return this;
     }
 
     public RoutedEventStore<T> addHandler(RoutedEventHandler<T> handler, boolean ignoreCancelled) {
-        RoutedEventHandlerInfo<T, RoutedEventHandler<T>> info = new RoutedEventHandlerInfo<>(handler, ignoreCancelled, false);
+        RoutedEventHandlerInfo<T, RoutedEventHandler<T>> info = new RoutedEventHandlerInfo<T, RoutedEventHandler<T>>(handler, ignoreCancelled, false);
         this.handlerToHandlerInfoMap.put(handler, info);
         this.handlers.add(info);
         return this;
     }
 
     public RoutedEventStore<T> addHandler(RoutedEventHandler<T> handler, boolean ignoreCancelled, boolean handleOtherEventsIfCancelled) {
-        RoutedEventHandlerInfo<T, RoutedEventHandler<T>> info = new RoutedEventHandlerInfo<>(handler, ignoreCancelled, handleOtherEventsIfCancelled);
+        RoutedEventHandlerInfo<T, RoutedEventHandler<T>> info = new RoutedEventHandlerInfo<T, RoutedEventHandler<T>>(handler, ignoreCancelled, handleOtherEventsIfCancelled);
         this.handlerToHandlerInfoMap.put(handler, info);
         this.handlers.add(info);
         return this;

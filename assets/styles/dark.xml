@@ -1,0 +1,7 @@
+<Theme>
+    <Colours>
+        <ColourARGB key="defaultBackground1" r="32" g="32" b="32" a="32"/>
+        <ColourARGB key="defaultBackground2" r="40" g="40" b="40" a="32"/>
+        <ColourARGB key="defaultBackground3" r="48" g="48" b="48" a="32"/>
+    </Colours>
+</Theme>

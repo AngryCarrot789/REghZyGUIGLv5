@@ -1,7 +1,9 @@
 package reghzy.guigl.core.event.events;
 
+import reghzy.guigl.core.event.Cancellable;
 import reghzy.guigl.core.event.RoutedEvent;
 
+@Cancellable
 public class MouseMoveEvent extends RoutedEvent {
     private final double oldX;
     private final double oldY;
@@ -29,5 +31,13 @@ public class MouseMoveEvent extends RoutedEvent {
 
     public double getNewY() {
         return newY;
+    }
+
+    public double getChangeX() {
+        return this.newX - this.oldX;
+    }
+
+    public double getChangeY() {
+        return this.newY - this.oldY;
     }
 }

@@ -6,10 +6,12 @@ import org.lwjgl.glfw.GLFWMouseButtonCallback;
 import reghzy.guigl.core.event.events.MouseButtonEvent;
 import reghzy.guigl.core.event.events.MouseMoveEvent;
 import reghzy.guigl.core.event.handlers.RoutedEventStore;
-import reghzy.guigl.math.Vector2;
+import reghzy.guigl.maths.Region2d;
+import reghzy.guigl.maths.Vector2d;
 import reghzy.guigl.window.Window;
 
 import java.nio.DoubleBuffer;
+import java.util.Arrays;
 
 public class Mouse {
     private final Window window;
@@ -22,6 +24,7 @@ public class Mouse {
 
     private final GLFWMouseButtonCallback mouseCallback;
     private final boolean[] buttonsDown;
+    private final boolean[] buttonsDownFrame;
 
     public final RoutedEventStore<MouseButtonEvent> eventRawOnButtonDown = new RoutedEventStore<MouseButtonEvent>(null);
     public final RoutedEventStore<MouseButtonEvent> eventRawOnButtonUp = new RoutedEventStore<MouseButtonEvent>(null);
@@ -30,6 +33,7 @@ public class Mouse {
     public Mouse(Window window) {
         this.window = window;
         this.buttonsDown = new boolean[GLFW.GLFW_KEY_LAST];
+        this.buttonsDownFrame = new boolean[GLFW.GLFW_KEY_LAST];
         this.mouseCallback = new GLFWMouseButtonCallback() {
             @Override
             public void invoke(long window, int button, int action, int mods) {
@@ -47,11 +51,19 @@ public class Mouse {
         setInputMode(false);
     }
 
+    public void setPosition(double x, double y) {
+        GLFW.glfwSetCursorPos(this.window.getId(), x, y);
+    }
+
+    public void setCursorToCenter() {
+        GLFW.glfwSetCursorPos(this.window.getId(), this.window.getWidth() / 2.0d, this.window.getHeight() / 2.0d);
+    }
+
     public void setInputMode(boolean hideMouse) {
         GLFW.glfwSetInputMode(this.window.getId(), GLFW.GLFW_CURSOR, hideMouse ? GLFW.GLFW_CURSOR_HIDDEN : GLFW.GLFW_CURSOR_NORMAL);
     }
 
-    public void updateMouse() {
+    public void update() {
         GLFW.glfwGetCursorPos(this.window.getId(), mouseBufferX, mouseBufferY);
         this.oldX = this.newX;
         this.oldY = this.newY;
@@ -59,7 +71,7 @@ public class Mouse {
         this.newY = mouseBufferY.get(0);
         mouseBufferX.rewind();
         mouseBufferY.rewind();
-
+        Arrays.fill(this.buttonsDownFrame, false);
         if (doubleEquality(this.oldX, this.newX) && doubleEquality(this.oldY, this.newY))  {
             return;
         }
@@ -75,24 +87,28 @@ public class Mouse {
         return this.buttonsDown[button.code];
     }
 
+    public boolean isButtonDownFrame(MouseButton button) {
+        return this.buttonsDownFrame[button.code];
+    }
+
     public boolean isButtonUp(MouseButton button) {
         return !this.buttonsDown[button.code];
     }
 
-    public Vector2 getMousePosI() {
-        return new Vector2((int) this.newX, (int) this.newY);
+    public Vector2d getMousePosI() {
+        return new Vector2d((int) this.newX, (int) this.newY);
     }
 
-    public Vector2 getMousePos() {
-        return new Vector2(this.newX, this.newY);
+    public Vector2d getMousePos() {
+        return new Vector2d(this.newX, this.newY);
     }
 
-    public Vector2 getOldMousePosI() {
-        return new Vector2((int) this.oldX, (int) this.oldY);
+    public Vector2d getOldMousePosI() {
+        return new Vector2d((int) this.oldX, (int) this.oldY);
     }
 
-    public Vector2 getOldMousePos() {
-        return new Vector2(this.oldX, this.oldY);
+    public Vector2d getOldMousePos() {
+        return new Vector2d(this.oldX, this.oldY);
     }
 
     public double getNewX() {
@@ -121,5 +137,9 @@ public class Mouse {
 
     public Window getWindow() {
         return window;
+    }
+
+    public boolean isOver(Region2d region) {
+        return region.intersects(this.newX, this.newY);
     }
 }

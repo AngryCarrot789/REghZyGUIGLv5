@@ -23,6 +23,10 @@ public class RoutedEventMethodHandler<T extends RoutedEvent> implements RoutedEv
     }
 
     public RoutedEventMethodHandler(Object instance, Method method, boolean passElementToMethod) {
+        if (!method.isAccessible()) {
+            method.setAccessible(true);
+        }
+
         this.instance = instance;
         this.method = method;
         this.passElementToMethod = passElementToMethod;
@@ -67,10 +71,9 @@ public class RoutedEventMethodHandler<T extends RoutedEvent> implements RoutedEv
         return this.passElementToMethod;
     }
 
-    @Override
     public void onHandle(Control sender, T event) {
         try {
-            if (passElementToMethod) {
+            if (this.passElementToMethod) {
                 this.method.invoke(this.instance, sender, event);
             }
             else {
@@ -78,10 +81,10 @@ public class RoutedEventMethodHandler<T extends RoutedEvent> implements RoutedEv
             }
         }
         catch (IllegalAccessException e) {
-            throw new RuntimeException(e);
+            throw new RuntimeException("Method had private/protected access", e);
         }
         catch (InvocationTargetException e) {
-            throw new RuntimeException(e);
+            throw new RuntimeException("Unhandled exception while passing event to method handler", e);
         }
     }
 }

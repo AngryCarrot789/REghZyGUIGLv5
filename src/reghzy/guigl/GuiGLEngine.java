@@ -2,13 +2,24 @@ package reghzy.guigl;
 
 import org.lwjgl.glfw.GLFW;
 import reghzy.guigl.core.input.Keyboard;
+import reghzy.guigl.core.input.KeyboardKey;
 import reghzy.guigl.core.input.Mouse;
 import reghzy.guigl.core.log.GuiGLLogger;
-import reghzy.guigl.render.engine.RenderEngine;
-import reghzy.guigl.render.engine.RenderEngineGL11;
+import reghzy.guigl.core.primitive.Panel;
+import reghzy.guigl.core.primitive.Rectangle;
+import reghzy.guigl.core.utils.ColourARGB;
+import reghzy.guigl.maths.Vector2d;
+import reghzy.guigl.render.RenderEngine;
+import reghzy.guigl.render.RenderManager;
+import reghzy.guigl.resource.ResourceManager;
+import reghzy.guigl.utils.RZFormats;
 import reghzy.guigl.window.Window;
 
-import java.util.logging.Logger;
+import java.io.File;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
 
 /**
  * The main class for any GuiGL application
@@ -20,20 +31,74 @@ import java.util.logging.Logger;
  * </h2>
  */
 public class GuiGLEngine implements Runnable {
-    private boolean isRunning;
-    private RenderEngineGL11 renderEngine;
-    private long initialisationTime;
+    private static GuiGLEngine engine;
 
     private final GuiGLLogger logger = new GuiGLLogger("GuiGL");
+    private final ResourceManager manager;
+    private RenderEngine renderEngine;
+    private boolean isRunning;
+    private long initialisationTime;
+    private long totalTicks;
+    private boolean isShuttingDown;
 
     private Window mainWindow;
+    private final ArrayList<Window> windows;
 
-    private long totalTicks;
+    public static final long DELTA_TIME = 100;
+    public double deltaTime;
 
-    public static final long DELTA_TIME = 20;
+    public GuiGLEngine(File launchDirectory) {
+        if (engine != null) {
+            throw new IllegalStateException("GuiGL engine already exists!");
+        }
 
-    public GuiGLEngine() {
+        engine = this;
+        this.manager = new ResourceManager(new File(launchDirectory, "assets"));
+        this.windows = new ArrayList<Window>();
+    }
 
+    public static GuiGLEngine getInstance() {
+        return engine;
+    }
+
+    private void start() {
+        if (!GLFW.glfwInit()) {
+            throw new RuntimeException("Failed to initialise GLFW");
+        }
+
+        getLogger().infoFormat("&6GLFW Successfully initialised, version: {0}", GLFW.glfwGetVersionString());
+    }
+
+    public void shutdownSafely() {
+        this.isShuttingDown = true;
+    }
+
+    private void beginShutdown() {
+        if (!this.isRunning) {
+            throw new IllegalStateException("Engine is not running; it may have already been shutdown");
+        }
+
+        getLogger().info("Shutting down application...");
+        for(Window window : this.windows) {
+            try {
+                if (window.isOpen()) {
+                    window.close();
+                }
+                else if (!window.isDestroyed()) {
+                    window.close();
+                }
+            }
+            catch (Throwable e) {
+                getLogger().warnFormat("Failed to destroy window '{0}'", window.getTitle());
+                getLogger().printException(e);
+            }
+        }
+
+        doShutdown();
+    }
+
+    private void doShutdown() {
+        GLFW.glfwTerminate();
     }
 
     @Override
@@ -42,88 +107,125 @@ public class GuiGLEngine implements Runnable {
             throw new IllegalStateException("GuiGL Engine is already running");
         }
 
-        long startTime = (this.initialisationTime = System.currentTimeMillis());
+        this.initialisationTime = System.currentTimeMillis();
+        getLogger().infoFormat("GuiGLEngine start @ {0}", new SimpleDateFormat("dd:MM:yyyy hh:mm:ss").format(new Date(this.initialisationTime)));
+        getLogger().infoFormat("Allocating object pools...");
+
+        long start = System.currentTimeMillis();
+
+        try {
+            Class.forName("reghzy.guigl.maths.Vector2d");
+            Class.forName("reghzy.guigl.maths.Vector2f");
+            Class.forName("reghzy.guigl.maths.Vector3f");
+            Class.forName("reghzy.guigl.maths.Vector4f");
+            Class.forName("reghzy.guigl.maths.Matrix4x4");
+        }
+        catch (ClassNotFoundException e) {
+            throw new RuntimeException("Failed to locate a class");
+        }
+
+        long end = System.currentTimeMillis();
+        getLogger().infoFormat("Allocated object pools in {0} milliseconds", end - start);
+
         try {
             start();
         }
         catch (Throwable e) {
-            getLogger().info("Failed to initialise GLFW");
+            getLogger().error("Failed to start GuiGL engine");
             e.printStackTrace();
             return;
         }
 
-        this.mainWindow = new Window("Main Window - GuiGL v0.0.1");
+        this.mainWindow = new Window(this, "Main Window - GuiGL v0.0.2");
         this.mainWindow.makeCurrent();
-        this.renderEngine = new RenderEngineGL11(this);
+        this.mainWindow.setCursorCaptured();
+        setMainWindow(this.mainWindow);
+
+        Rectangle rect = new Rectangle();
+        rect.setSize(Vector2d.get(this.mainWindow.getWidth(), this.mainWindow.getHeight()));
+        rect.background = ColourARGB.CYAN;
+
+        Rectangle rect1 = Rectangle.newRect(Vector2d.get(0.0d), Vector2d.get(20.0d, 20.0d));
+        Rectangle rect2 = Rectangle.newRect(Vector2d.get(this.mainWindow.getWidth() - 20, 0.0d), Vector2d.get(20.0d, 20.0d));
+        Rectangle rect3 = Rectangle.newRect(Vector2d.get(this.mainWindow.getWidth() - 20.0d, this.mainWindow.getHeight() - 20.0d), Vector2d.get(20.0d, 20.0d));
+        Rectangle rect4 = Rectangle.newRect(Vector2d.get(0.0d, this.mainWindow.getHeight() - 20.0d), Vector2d.get(20.0d, 20.0d));
+
+        rect1.background = ColourARGB.RED;
+        rect2.background = ColourARGB.RED;
+        rect3.background = ColourARGB.RED;
+        rect4.background = ColourARGB.RED;
+
+        rect1.render.renderDepth += 0.01f;
+        rect2.render.renderDepth += 0.01f;
+        rect3.render.renderDepth += 0.01f;
+        rect4.render.renderDepth += 0.01f;
+
+        Panel panel = new Panel();
+        panel.addChild(rect);
+        panel.addChild(rect1);
+        panel.addChild(rect2);
+        panel.addChild(rect3);
+        panel.addChild(rect4);
+
+        this.mainWindow.setContent(panel);
+
+        this.renderEngine = new RenderEngine(this);
         this.renderEngine.initialise();
         this.mainWindow.show();
 
-        this.isRunning = true;
-        getLogger().info("GuiGL successfully initialised in " + (System.currentTimeMillis() - startTime) + " milliseconds");
-
-        // final long targetMillisDelay = 1000 / DELTA_TIME;
-        // long tick = System.currentTimeMillis();
-        // long lastTick;
-        // long interval;
-        // long nextTickTime;
         try {
-            startTime = System.currentTimeMillis();
-            long deltaMillis = 1000 / DELTA_TIME; // 50
-            long currentTime = 0;
-            long intervalTime = 0;
-            long lastDelayTime = 0;
-            while(true) {
+            this.renderEngine.setupWindow(this.mainWindow);
+        }
+        catch (Throwable e) {
+            throw new RuntimeException("Failed to setup window with render engine", e);
+        }
+
+        this.isRunning = true;
+        getLogger().infoFormat("&6GuiGL successfully initialised in {0} milliseconds", System.currentTimeMillis() - this.initialisationTime);
+
+        long deltaMillis = 1000 / DELTA_TIME;
+        long currentTime = 0;
+        long intervalTime = 0;
+        long delayTime = 0;
+        long ticks = 0;
+        // TODO: maybe implement a tick catchup system, in case the app misses a tick for some reason. Should be fine though
+        try {
+            while (true) {
                 currentTime = System.currentTimeMillis();
                 tick();
                 intervalTime = System.currentTimeMillis() - currentTime;
-
-                if (this.mainWindow.shouldClose()) {
-                    shutdown();
-                    return;
+                if ((++ticks) != this.totalTicks) {
+                    getLogger().warn("Warning! External application tick detected during main tick");
+                    ticks = this.totalTicks;
                 }
 
-                if (intervalTime > 2000L && (startTime - this.initialisationTime) >= 1000L) { // 1000L == average startup time
-                    getLogger().info("Engine did not tick in the last 2 seconds!");
-                    intervalTime = 2000L;
+                final long delayWarn = 2000L;
+                if (intervalTime > delayWarn) {
+                    getLogger().warn("Engine did not tick in the last " + intervalTime + "ms!");
+                    intervalTime = delayWarn;
                 }
                 else if (intervalTime < 0L) {
                     getLogger().warn("Tick interval was negative! Did the system time change backwards?");
                     intervalTime = 0L;
                 }
 
-                // assuming the engine wants to run at 20 ticks per second, interval would be 0
-                // but that assumes the tick took almost no time
-                // if the tick took about 10ms, then the interval should be 10ms
-                // therefore you want to delay for 40ms
-                lastDelayTime = deltaMillis - intervalTime;
-                doTickDelay(lastDelayTime);
+                if (this.mainWindow.shouldClose()) {
+                    beginShutdown();
+                    return;
+                }
+                else if (this.isShuttingDown) {
+                    beginShutdown();
+                    return;
+                }
+
+                // assuming the engine wants to run at 20 ticks per second, if interval is 0, the tick took almost no time, so delay for 50ms
+                // if the tick took about 10ms, then the interval should be 10ms therefore you want to delay for 40ms
+                delayTime = deltaMillis - intervalTime;
+                this.deltaTime = (deltaMillis / 1000.d);
+                Time.delta = this.deltaTime;
+                Time.deltaLong = (long) (this.deltaTime + 0.5d);
+                doDelay(delayTime);
             }
-            // startTime = System.currentTimeMillis();
-            // long tick = 0L;
-            // long deltaMillis = 1000L / DELTA_TIME;
-            // while (true) {
-            //     long currentTime = System.currentTimeMillis();
-            //     long interval = currentTime - startTime;
-            //     if (interval > 2000L && (startTime - this.initialisationTime) >= 1000L) { // 1000L == average startup time
-            //         getLogger().info("Engine did not tick in the last 2 seconds!");
-            //         interval = 2000L;
-            //     }
-            //     if (interval < 0L) {
-            //         getLogger().warn("Tick interval was negative! Did the system time change backwards?");
-            //         interval = 0L;
-            //     }
-            //     tick += interval;
-            //     startTime = currentTime;
-            //     while (tick > deltaMillis) {
-            //         tick -= deltaMillis;
-            //         tick();
-            //         if (this.mainWindow.shouldClose()) {
-            //             shutdown();
-            //             return;
-            //         }
-            //     }
-            //     Thread.sleep(1L);
-            // }
         }
         catch (InterruptedException e) {
             throw new RuntimeException("Engine thread was interrupted while sleeping", e);
@@ -133,45 +235,93 @@ public class GuiGLEngine implements Runnable {
         }
     }
 
-    private void doTickDelay(long delay) throws InterruptedException {
+    private static void doDelay(long delay) throws InterruptedException {
         long nextTick = System.currentTimeMillis() + delay;
-        if (delay > 15) { // average windows thread-slice time == 15~ millis
-            long time = Math.max(10, delay / 3);
-            long tempNextTick = nextTick - 20;
-            while (System.currentTimeMillis() < tempNextTick) {
-                Thread.sleep(time);
-            }
+        if (delay > 20) { // average windows thread-slice time == 15~ millis
+            Thread.sleep(delay - 20);
         }
 
-        while (System.currentTimeMillis() < nextTick) {
-
-        }
+        // do this for the rest of the duration, for precise timing
+        while (System.currentTimeMillis() < nextTick) { }
     }
 
-    public void shutdown() {
-        if (!this.isRunning) {
-            throw new IllegalStateException("Application is not running; it may have already been shutdown");
-        }
-
-        beginShutdown();
-    }
-
-    private void beginShutdown() {
-
-    }
-
-    private void start() {
-        if (!GLFW.glfwInit()) {
-            throw new RuntimeException("Failed to initialise GLFW");
-        }
-
-        getLogger().info("GLFW Successfully initialised, version: " + GLFW.glfwGetVersionString());
-    }
-
+    /**
+     * Main application tick; this is what actually updates the application and causes it to do something
+     * <p>
+     *     This is a very time-sensitive method, it should only really be called by the engine. External ticks are not supported yet
+     * </p>
+     */
     public void tick() {
         this.totalTicks++;
-        if (this.totalTicks % 20 == 0) {
-            getLogger().info("Tick interval == 20");
+        GLFW.glfwPollEvents();
+
+        if (this.mainWindow.getKeyboard().isKeyDownFrame(KeyboardKey.escape)) {
+            shutdownSafely();
+            return;
+        }
+
+        try {
+            doGlobalUpdate();
+        }
+        catch (Throwable e) {
+            throw new RuntimeException("Failed to do window update", e);
+        }
+
+        try {
+            doGlobalRender();
+        }
+        catch (Throwable e) {
+            throw new RuntimeException("Failed to do global render", e);
+        }
+    }
+
+    /**
+     * Update the entire application, including all windows
+     */
+    public void doGlobalUpdate() {
+        List<Window> windows = this.windows;
+        for(int i = 0, len = windows.size(); i < len; i++) {
+            try {
+                windows.get(i).doTickUpdate();
+            }
+            catch (Throwable e) {
+                throw new RuntimeException(RZFormats.format("Failed to update window {0} ({1})", i, windows.get(i).getTitle()), e);
+            }
+        }
+    }
+
+    /**
+     * Render the entire application, including all windows
+     */
+    public void doGlobalRender() {
+        List<Window> windows = this.windows;
+        boolean clearScreen;
+        for (int i = 0, len = windows.size(); i < len; i++) {
+            Window window = windows.get(i);
+            clearScreen = window.clearScreenNextTick;
+
+            try {
+                this.renderEngine.beginWindowRender(window);
+                if (clearScreen) {
+                    window.clearScreenNextTick = false;
+                    this.renderEngine.clearColour(window.backgroundColour);
+                    this.renderEngine.clearScreen();
+                    window.doTickRender(this.renderEngine, true);
+                    window.swapBuffers();
+                    this.renderEngine.clearColour(window.backgroundColour);
+                    this.renderEngine.clearScreen();
+                }
+                else if (RenderManager.FORCE_RENDER_ALWAYS) {
+                    this.renderEngine.clearColour(window.backgroundColour);
+                    this.renderEngine.clearScreen();
+                }
+
+                window.doTickRender(this.renderEngine, clearScreen);
+                this.renderEngine.endWindowRender(window);
+            }
+            catch (Throwable e) {
+                throw new RuntimeException(RZFormats.format("Failed to render window {0} ({1})", i, windows.get(i).getTitle()), e);
+            }
         }
     }
 
@@ -190,4 +340,54 @@ public class GuiGLEngine implements Runnable {
     public Mouse getMouse() {
         return this.mainWindow.getMouse();
     }
+
+    public Window getMainWindow() {
+        return this.mainWindow;
+    }
+
+    public ResourceManager getManager() {
+        return manager;
+    }
+
+    public long getTotalTicks() {
+        return this.totalTicks;
+    }
+
+    public void setMainWindow(Window window) {
+        if (!this.windows.contains(window)) {
+            this.windows.add(window);
+        }
+
+        this.mainWindow = window;
+    }
+
+    // This is how minecraft does its game loop
+    // long startTime = System.currentTimeMillis();
+    // long deltaMillis = 1000L / 20; // 20 ticks per second
+    // long tick = 0L;
+    // while (true) {
+    //     long currentTime = System.currentTimeMillis();
+    //     long interval = currentTime - startTime;
+    //     if (interval > 2000L && (startTime - this.initialisationTime) >= 1000L) { // 1000L == average startup time
+    //         getLogger().info("Engine did not tick in the last 2 seconds!");
+    //         interval = 2000L;
+    //     }
+    //     if (interval < 0L) {
+    //         getLogger().warn("Tick interval was negative! Did the system time change backwards?");
+    //         interval = 0L;
+    //     }
+    //     tick += interval;
+    //     startTime = currentTime;
+    //     while (tick > deltaMillis) {
+    //         tick -= deltaMillis;
+    //         tickEngine();
+    //     }
+    //
+    //     // this is where the inaccuracy comes from;
+    //     // there is every chance the thread will be sleeping while a tick
+    //     // is ready, due to how sleep works; thread time-slicing and stuff
+    //     // Thread.sleep() is usually never accurate below 15~ millis,
+    //     // unless this is the only thread on the CPU core
+    //     Thread.sleep(1L);
+    // }
 }
